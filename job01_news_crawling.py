@@ -8,7 +8,7 @@ import time
 import datetime
 from datetime import date, timedelta          # strftime 함수. 원하는 형식으로 날짜를 출력
 
-category = ['시황/전망', '기업/종목분석', '해외증시', '채권/선물', '공시/메모', '환율']  # '해외증시', '채권/선물' 후순위로.
+category = ['시황,전망', '기업,종목분석', '해외증시', '채권,선물', '공시,메모', '환율']  # '해외증시', '채권/선물' 후순위로.
 category_2 = [401, 402, 403, 404, 406, 429]                                     # pages라고 칭하기에 카테고리 안쪽>일별>페이지가 있어서 category_2로 지정
 category_date = []                                                              # 날짜만들기(일별페이지 돌리기 위함)
 
@@ -24,10 +24,10 @@ driver.get(url)                               # 뉴스땐 있고 라프텔 땐 �
 
 
 # x_path 정의
-# category :                      //*[@id="newarea"]/div[1]/ul/li[3]/ul/li[1]/a                            xpath1_category   # 1~6
-# articleSubject or 썸네일 :       //*[@id="contentarea_left"]/ul/li[1]/dl/dt[5]/a                          xpath2_title      # 1~10, 1~최대10  => 20개
-# dd
-# dt
+# category :                      //*[@id="newarea"]/div[1]/ul/li[3]/ul/li[1]/a                            xpath1_category   # => i     # 1~6
+# articleSubject or 썸네일 :       //*[@id="contentarea_left"]/ul/li[1]/dl/dt[5]/a                          xpath2_title      # =>     # 1~10, 1~최대10  => 20개
+# dd        xpath2_article_button = '//*[@id="contentarea_left"]/ul/li[{}]/dl/dd[{}]/a'
+# dt        xpath2_article_button = '//*[@id="contentarea_left"]/ul/li[{}]/dl/dt[{}]/a'
 
 # 기사 속 제목 :                    //*[@id="contentarea_left"]/div[2]/div[1]/div[2]/h3                      xpath3_title
 # articleCont :                   //*[@id="content"]                                                       xpath4_content    # 기사마다 통일되어있음
@@ -50,16 +50,6 @@ for d in range(1, 376):                         # 23년 1월 10일 ~ 22년 1월1
     category_date.append(yesterday)             # category_date 리스트에 날짜들 모아 넣을 것
 # print(category_date)
 
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dt[1]/a'
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dd[2]/a'
-#
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dd[6]/a'
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dd[8]/a'
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dd[10]/a'
-#
-# '//*[@id="contentarea_left"]/ul/li[2]/dl/dt[1]/a'
-
-
 for i in category_2:
     titles = []
     contents = []
@@ -81,8 +71,8 @@ for i in category_2:
                             xpath4_contents = '//*[@id="content"]'                                # 기사 속 내용의 xpath
                             title = driver.find_element('xpath', xpath3_title).text               # 변수명, 기사 속 제목
                             content = driver.find_element('xpath', xpath4_contents).text
-                            title = re.compile('[^가-힣 ]').sub(' ', title)                        # 전처리(한글만 남길)
-                            content = re.compile('[^가-힣 ]').sub(' ', content)
+                            # title = re.compile('[^가-힣 ]').sub(' ', title)                        # 전처리(한글만 남길)
+                            # content = re.compile('[^가-힣 ]').sub(' ', content)
                             titles.append(title)                # 기사제목 append
                             contents.append(content)            # 기사내용 append
                             print(title)
@@ -100,8 +90,8 @@ for i in category_2:
                             xpath4_contents = '//*[@id="content"]'                                # 기사 속 내용의 xpath
                             title = driver.find_element('xpath', xpath3_title).text               # 변수명, 기사 속 제목
                             content = driver.find_element('xpath', xpath4_contents).text
-                            title = re.compile('[^가-힣 ]').sub(' ', title)                        # 전처리(한글만 남길)
-                            content = re.compile('[^가-힣 ]').sub(' ', content)
+                            # title = re.compile('[^가-힣 ]').sub(' ', title)                        # 전처리(한글만 남길)
+                            # content = re.compile('[^가-힣 ]').sub(' ', content)
                             titles.append(title)                # 기사제목 append
                             contents.append(content)            # 기사내용 append
                             print(title)
@@ -114,12 +104,11 @@ for i in category_2:
 
 
             except NoSuchElementException as E:
-                print(i, j, k)
+                print(i, j, k, l, m)
 
         # 저장
-        df = pd.DataFrame(zip(titles, contents))  # 기사제목, 기사내용, 카테고리순으로
+        df = pd.DataFrame(zip(titles, contents))                # 일별로 저장. # 기사제목, 기사내용, 카테고리순으로
         df.columns = ['titles', 'contents']
         df['category'] = category[category_2.index(i)]
         print(df)
-        df.to_csv('./crawling_data/news_crawling_data_{}_{}.csv'.format(category[category_2.index(i)], j),
-                  index=True)
+        df.to_csv('./crawling_data/news_crawling_data_{}_{}.csv'.format(category[category_2.index(i)], j), index=True)
