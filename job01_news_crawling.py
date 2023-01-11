@@ -1,5 +1,8 @@
 # 네이버 증권 뉴스
 # 크롤링 할 내용 : 1. 아티클 title 2. 아티클 contents
+# ~부터 다시 돌리기
+# ver3. 일별로 저장후 리스트 비워주기
+
 from selenium import webdriver                # pip install selenium
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 import pandas as pd                           # pip install pandas
@@ -23,11 +26,11 @@ df_title = pd.DataFrame()                     # 타이틀 모으는 데이터프
 driver.get(url)                               # 뉴스땐 있고 라프텔 땐 없는 부분. 필요? 하단에 있음
 
 
-# x_path 정의
+# <x_path 정의, ijklm 각 정리>
 # category :                      //*[@id="newarea"]/div[1]/ul/li[3]/ul/li[1]/a                            xpath1_category   # => i     # 1~6
-# articleSubject or 썸네일 :       //*[@id="contentarea_left"]/ul/li[1]/dl/dt[5]/a                          xpath2_title      # =>     # 1~10, 1~최대10  => 20개
-# dd        xpath2_article_button = '//*[@id="contentarea_left"]/ul/li[{}]/dl/dd[{}]/a'
-# dt        xpath2_article_button = '//*[@id="contentarea_left"]/ul/li[{}]/dl/dt[{}]/a'
+# articleSubject or 썸네일 :       //*[@id="contentarea_left"]/ul/li[1]/dl/dt[5]/a                          xpath2_title      # 1~10, 1~최대10  => 20개
+# 썸네일 있는(dd) 기사 :            xpath2_article_button      //*[@id="contentarea_left"]/ul/li[{}]/dl/dd[{}]/a
+# 썸네일 없는(dt) 기사 :            xpath2_article_button      //*[@id="contentarea_left"]/ul/li[{}]/dl/dt[{}]/a
 
 # 기사 속 제목 :                    //*[@id="contentarea_left"]/div[2]/div[1]/div[2]/h3                      xpath3_title
 # articleCont :                   //*[@id="content"]                                                       xpath4_content    # 기사마다 통일되어있음
@@ -37,6 +40,9 @@ driver.get(url)                               # 뉴스땐 있고 라프텔 땐 �
 # 일별 기사 > 다중페이지(1~n개):      https://finance.naver.com/news/news_list.naver?mode=LSS3D&section_id=101&section_id2=258&section_id3=402&page=8
 # 일별 기사 > 다중페이지(1~n개):      //*[@id="contentarea_left"]/table/tbody/tr/td/table/tbody/tr/td[1]/a     xpath6_page
 
+# l = li_section_1, 2
+# m = 썸네일 있고 없고
+
 
 today = date.today()
 
@@ -44,25 +50,25 @@ today = today.strftime('%Y%m%d')
 # category_date.append(today)                   # 오늘 날짜
 # print(category_date)
 
-for d in range(1, 376):                         # 23년 1월 10일 ~ 22년 1월1일. (1월 11일 기준 375일 전까지)
+for d in range(32, 376):                        # 23년 1월 10일 ~ 22년 1월1일. (1월 11일 기준 375일 전까지)   # 20221227~. => (15, 376)  # 20221210~. => (32, 376)
     yesterday = date.today() - timedelta(d)     # 하루치 뺀 것이 yesterday. d는 1~375까지 돈다
     yesterday = yesterday.strftime('%Y%m%d')    # 날짜형식 ex) 20230110 되도록.
     category_date.append(yesterday)             # category_date 리스트에 날짜들 모아 넣을 것
 # print(category_date)
 
 for i in category_2:
-    titles = []
-    contents = []
     for j in category_date:
-        for k in range(1, 11):      # 8까지 긁히고 그 이후 없어서 못가는ver. (k열 저장 x)
+        titles = []                             # 일별로 저장후 리스트 비워주기 !!
+        contents = []
+        for k in range(1, 11):
             try:
-                date_page = 'https://finance.naver.com/news/news_list.naver?mode=LSS3D&section_id=101&section_id2=258&section_id3={}&date={}&page={}'.format(i, j, k)  # title : articleSubject or 썸네일 눌러서 기사로 접속
+                date_page = 'https://finance.naver.com/news/news_list.naver?mode=LSS3D&section_id=101&section_id2=258&section_id3={}&date={}&page={}'.format(i, j, k)  # 카테고리, 일별, 페이지 format
                 print(date_page)
                 driver.get(date_page)
                 time.sleep(1)
-                for l in range(1, 3):               # li_section_1 # li_section_2 : 페이지 내 리스트 10개, 10(-n)개 2개 섹션으로 나뉨
-                    for m in range(1, 20, 2):       # 썸네일 있는(dd) 기사의 경우 1, 3, 5, 7 순으로 홀수로 따로 ~19까지 전개됨.
-                        try:                        # 썸네일 있는(dd) 기사의 제목, 내용 긁고 저장
+                for l in range(1, 3):                           # li_section_1 # li_section_2 : 페이지 내 리스트 10개, 10(-n)개 2개 섹션으로 나뉨
+                    for m in range(1, 20, 2):                   # 썸네일 있는(dd) 기사의 경우 1, 3, 5,,,순으로(홀수or짝수) 따로 ~19까지 전개됨.   # 다 제목으로 접속하는데 dd와 dt로 두번
+                        try:                                    # 썸네일 있는(dd) 기사의 제목, 내용 긁고 저장
                             xpath2_article_button = '//*[@id="contentarea_left"]/ul/li[{}]/dl/dd[{}]/a'.format(l, m)
                             driver.find_element('xpath', xpath2_article_button).click()
                             time.sleep(1)
@@ -101,6 +107,7 @@ for i in category_2:
 
                         except:
                             pass                                # 기사 접속 시 dd도 아니고 dt도 아니면 넘어가기
+                            print('pass')
 
 
             except NoSuchElementException as E:
